@@ -73,7 +73,7 @@ def cleanup():
     #cmd = 'rm -r S1*zip dem*'
     retcode = run_bash_command(cmd)
     return retcode
-    
+
 def run_isce():
     """Call topsApp.py to generate single interferogram."""
     cmd = 'topsApp.py --steps 2>&1 | tee topsApp.log'
@@ -89,7 +89,7 @@ def sync_output(results_s3):
     return retcode
 
 
-def main():
+def main(volume='/opt/scratch'):
     """Process single interferogram."""
     retcode = 1
     try:
@@ -98,10 +98,10 @@ def main():
         intname = inps.int_s3.lstrip('s3://')
 
         # Process in mounted EBS drive /opt/scratch
-        os.chdir('/opt/scratch')
-
-        if not os.path.isdir(intname): os.makedirs(intname)
-        os.chdir(intname)
+        procdir = os.path.join(volume,intname)
+        if not os.path.isdir(procdir):
+            os.makedirs(procdir)
+        os.chdir(procdir)
 
         retcode = get_proc_files(inps.int_s3, inps.dem_s3)
         retcode = download_slcs()
@@ -109,11 +109,17 @@ def main():
         # Not really necessary since EBS drive deleted
         #cleanup()
 
-        results_s3 = inps.int_s3.replace('processing', 'results')
-        retcode = sync_output(results_s3)
     except Exception as e:
         print(e)
+
     finally:
+        print('Syncing results to S3 and removing processing directory')
+
+        results_s3 = inps.int_s3.replace('processing', 'results')
+        sync_output(results_s3)
+
+        shutil.rmtree(procdir)
+
         sys.exit(retcode)
 
 

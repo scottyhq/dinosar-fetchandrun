@@ -58,9 +58,12 @@ def main():
         print(f'Batch index: {index}, Processing pair: {pairS3}')
         cmd = f'{script} -i {pairS3} -d {inps.dem_s3}'
         retcode = run_bash_command(cmd)
+
     except Exception as e:
         print(e)
+
     finally:
+
         sys.exit(retcode)
 
 if __name__ == '__main__':
